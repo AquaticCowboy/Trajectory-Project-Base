@@ -32,6 +32,16 @@ public class LaserTurret : MonoBehaviour
         if(Physics.Raycast(barrelEnd.position, barrelEnd.forward, out RaycastHit hit, 1000.0f, targetLayer))
         {
             laserPoints.Add(hit.point);
+
+            Vector3 reflectVector = CalculateReflectVector(hit.normal, barrelEnd.forward);
+
+            if(Physics.Raycast(hit.point, reflectVector, out RaycastHit rHit, 1000.0f, targetLayer))
+            {
+                laserPoints.Add(rHit.point);
+            }else
+            {
+                laserPoints.Add((reflectVector * 1000.0f) + hit.point);
+            }
         }
 
         line.positionCount = laserPoints.Count;
@@ -39,6 +49,12 @@ public class LaserTurret : MonoBehaviour
         {
             line.SetPosition(i, laserPoints[i]);
         }
+    }
+
+    Vector3 CalculateReflectVector(Vector3 normal, Vector3 incedentVector)
+    {
+        float dProd = Vector3.Dot(incedentVector, normal);
+        return (incedentVector - 2 * (dProd) * normal);
     }
 
     void TrackMouse()
