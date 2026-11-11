@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class ProjectileTurret : MonoBehaviour
@@ -15,8 +17,9 @@ public class ProjectileTurret : MonoBehaviour
     [SerializeField] Transform barrelEnd;
     [SerializeField] LineRenderer line;
     [SerializeField] bool useLowAngle;
+    
 
-    List<Vector3> points = new List<Vector3>();
+    List <Vector3> points = new List<Vector3>();
 
     // Start is called before the first frame update
     void Start()
@@ -33,12 +36,23 @@ public class ProjectileTurret : MonoBehaviour
 
         if (Input.GetButtonDown("Fire1"))
             Fire();
+        points.Clear();
+        points.Add(barrelEnd.position);
+
+        CreateArcList(barrelEnd.position, barrelEnd.forward);
+
+        line.positionCount = points.Count;
+        for (int i = 0; i < line.positionCount; i++)
+        {
+            line.SetPosition(i, points[i]);
+        }
     }
 
     void Fire()
     {
         GameObject projectile = Instantiate(projectilePrefab, barrelEnd.position, gun.transform.rotation);
-        projectile.GetComponent<Rigidbody>().linearVelocity = projectileSpeed * barrelEnd.transform.forward;
+        Vector3 lv = projectileSpeed * barrelEnd.transform.forward;
+        projectile.GetComponent<Rigidbody>().linearVelocity = lv;
     }
 
     void TrackMouse()
@@ -66,6 +80,32 @@ public class ProjectileTurret : MonoBehaviour
         float? angle = CalculateTrajectory(crosshair.transform.position, useLowAngle);
         if (angle != null)
             gun.transform.localEulerAngles = new Vector3(360f - (float)angle, 0, 0);
+    }
+
+    void CreateArcList(Vector3 startPos, Vector3 direction)
+    {
+        Vector3 lv = projectileSpeed * direction;
+        for (float i = 0f; i < 60; i += Time.deltaTime)
+        {
+            
+            Vector3 displacement = startPos + (lv * i + (0.5f * -gravity * Mathf.Pow(i, 2f)));
+            Vector3 newPos = displacement;
+            startPos = newPos;
+            direction = (newPos - startPos).normalized;
+
+            float distance = (displacement - startPos).magnitude;
+            if (Physics.Raycast(startPos, direction, out RaycastHit hit, distance, targetLayer)){
+                Debug.Log("hit");
+                points.Add(hit.point);
+                break;
+            }
+            else
+            {
+                
+                points.Add(newPos);
+ 
+            }
+        }
     }
 
     float? CalculateTrajectory(Vector3 target, bool useLow)
